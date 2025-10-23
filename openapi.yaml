@@ -1,0 +1,340 @@
+openapi: 3.0.3
+info:
+  title: Adesk Reps API
+  version: "1.0.0"
+  description: |
+    CRUD API for managing reps (support agents).
+    - Multi-tenant via `X-Tenant-Id` header
+    - JSON object `attributes` is flexible key/value metadata
+    - Timestamps are server-managed (read-only)
+servers:
+  - url: http://localhost:8080/v0
+    description: Local dev
+
+tags:
+  - name: reps
+    description: Rep management
+
+paths:
+  /reps:
+    get:
+      tags: [reps]
+      summary: List reps
+      operationId: listReps
+      parameters:
+        - $ref: "#/components/parameters/TenantId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+        - $ref: "#/components/parameters/Sort"
+        - $ref: "#/components/parameters/IsActive"
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: Paged list of reps
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepPage"
+    post:
+      tags: [reps]
+      summary: Create a rep
+      operationId: createRep
+      parameters:
+        - $ref: "#/components/parameters/TenantId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepCreate"
+            examples:
+              default:
+                value:
+                  userId: "7e7b6b5d-6a5b-4a4b-9a9a-9a9a9a9a9a9a"
+                  isActive: true
+                  attributes:
+                    office: "London"
+                    skills: ["software:excel", "software:ms_office"]
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              description: URL of the created rep
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rep"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /reps/{id}:
+    get:
+      tags: [reps]
+      summary: Get a rep
+      operationId: getRep
+      parameters:
+        - $ref: "#/components/parameters/TenantId"
+        - $ref: "#/components/parameters/RepId"
+      responses:
+        "200":
+          description: Rep
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rep"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [reps]
+      summary: Replace a rep
+      description: Fully replace mutable fields of a rep (id, tenantId, timestamps are immutable).
+      operationId: replaceRep
+      parameters:
+        - $ref: "#/components/parameters/TenantId"
+        - $ref: "#/components/parameters/RepId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepPut"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rep"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [reps]
+      summary: Patch a rep
+      description: Partial update using JSON Merge Patch (RFC 7396).
+      operationId: patchRep
+      parameters:
+        - $ref: "#/components/parameters/TenantId"
+        - $ref: "#/components/parameters/RepId"
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              $ref: "#/components/schemas/RepPatch"
+            examples:
+              activate:
+                value:
+                  isActive: true
+              set-attributes:
+                value:
+                  attributes:
+                    office: "London"
+                    language: ["en"]
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rep"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [reps]
+      summary: Delete a rep
+      description: Hard delete by default. If you prefer soft-delete, use `PATCH isActive=false`.
+      operationId: deleteRep
+      parameters:
+        - $ref: "#/components/parameters/TenantId"
+        - $ref: "#/components/parameters/RepId"
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    TenantId:
+      in: header
+      name: X-Tenant-Id
+      required: true
+      description: Tenant context for multi-tenant isolation.
+      schema:
+        type: string
+        format: uuid
+    RepId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Page:
+      in: query
+      name: page
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      in: query
+      name: size
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 20
+    Sort:
+      in: query
+      name: sort
+      required: false
+      description: Sort by field, e.g. `createdAt,desc` or `userId,asc`.
+      schema:
+        type: string
+        default: createdAt,desc
+    IsActive:
+      in: query
+      name: isActive
+      required: false
+      schema:
+        type: boolean
+    UserId:
+      in: query
+      name: userId
+      required: false
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Rep:
+      type: object
+      required:
+        [id, tenantId, userId, isActive, attributes, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        isActive:
+          type: boolean
+          default: true
+        attributes:
+          type: object
+          additionalProperties: true
+          description: Arbitrary key/value traits (e.g., office, skills, language).
+          example:
+            office: "London"
+            skills: ["software:excel", "software:ms_office"]
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+
+    RepCreate:
+      type: object
+      required: [userId]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        isActive:
+          type: boolean
+          default: true
+        attributes:
+          $ref: "#/components/schemas/Rep/properties/attributes"
+
+    RepPut:
+      type: object
+      required: [userId, isActive, attributes]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        isActive:
+          type: boolean
+        attributes:
+          $ref: "#/components/schemas/Rep/properties/attributes"
+
+    RepPatch:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        isActive:
+          type: boolean
+        attributes:
+          $ref: "#/components/schemas/Rep/properties/attributes"
+
+    RepPage:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rep"
+        page:
+          type: integer
+          minimum: 0
+        size:
+          type: integer
+          minimum: 1
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    Problem:
+      type: object
+      description: RFC 7807 problem details
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer, format: int32 }
+        detail: { type: string }
+        instance: { type: string, format: uri }
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+
+security:
+  - BearerAuth: []
