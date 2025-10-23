@@ -1,23 +1,43 @@
+server:
+  port: ${SERVER_PORT:8081}
+
 spring:
-  server:
-    port: 8081
+  application:
+    name: adesk-rep-svc
   datasource:
-    url: jdbc:postgresql://localhost:5432/adeskdb?currentSchema=rep
-    username: adesk_admin
-    password: adesk_password
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/adeskdb?currentSchema=rep}
+    username: ${SPRING_DATASOURCE_USERNAME:adesk_admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:adesk_password}
   flyway:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: validate
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 logging:
   level:
     org.hibernate.SQL: warn
     org.flywaydb.core: info
+
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics
+
+app:
+  kafka:
+    topic: ${APP_KAFKA_TOPIC:rep-events}
+  outbox:
+    batch-size: ${APP_OUTBOX_BATCH_SIZE:50}
+    poll-delay-ms: ${APP_OUTBOX_POLL_DELAY_MS:5000}
+    retry-delay-seconds: ${APP_OUTBOX_RETRY_DELAY_SECONDS:30}
+    max-attempts: ${APP_OUTBOX_MAX_ATTEMPTS:10}

@@ -1,0 +1,10 @@
+# Log file
+*.log
+
+# Package Files
+*.jar
+*.zip
+*.tar.gz
+
+target
+.vscode

@@ -4,8 +4,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.adesk</groupId>
-    <artifactId>ticketsvc</artifactId>
+    <artifactId>adesk-rep-svc</artifactId>
     <version>1.0.0</version>
+    <name>Adesk Rep Service</name>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -50,8 +51,11 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
 
-        <!-- Kafka (only if you’ll use it now) -->
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
@@ -61,6 +65,12 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
         </dependency>
 
@@ -85,7 +95,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-            <!-- maven-compiler-plugin is managed by the parent; no extra config needed -->
         </plugins>
     </build>
 </project>
